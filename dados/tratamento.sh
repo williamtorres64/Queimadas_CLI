@@ -14,43 +14,53 @@ sqlite3 sql/original.db << 'EOF'
 .import csv_bruto/merged_focos.csv focos
 .mode table
 ATTACH DATABASE 'sql/normalizado.db' AS normalizado;
-CREATE TABLE normalizado.bioma AS 
-    SELECT ROW_NUMBER() OVER(ORDER BY bioma) AS id, bioma AS nome 
-    FROM main.focos 
-    WHERE bioma IS NOT NULL AND bioma != '' 
+-- ensure clean state when running multiple times
+DROP TABLE IF EXISTS normalizado.bioma;
+DROP TABLE IF EXISTS normalizado.municipio;
+DROP TABLE IF EXISTS normalizado.estado;
+DROP TABLE IF EXISTS normalizado.focos_bruto;
+DROP TABLE IF EXISTS normalizado.focos;
+
+-- build dimension tables from imported main.focos
+CREATE TABLE normalizado.bioma AS
+    SELECT ROW_NUMBER() OVER(ORDER BY bioma) AS id, bioma AS nome
+    FROM main.focos
+    WHERE bioma IS NOT NULL AND bioma != ''
     GROUP BY bioma;
-CREATE TABLE normalizado.municipio AS 
-    SELECT ROW_NUMBER() OVER(ORDER BY municipio) AS id, municipio AS nome 
-    FROM main.focos 
-    WHERE municipio IS NOT NULL AND municipio != '' 
+CREATE TABLE normalizado.municipio AS
+    SELECT ROW_NUMBER() OVER(ORDER BY municipio) AS id, municipio AS nome
+    FROM main.focos
+    WHERE municipio IS NOT NULL AND municipio != ''
     GROUP BY municipio;
-CREATE TABLE normalizado.estado AS 
-    SELECT ROW_NUMBER() OVER(ORDER BY estado) AS id, estado AS nome 
-    FROM main.focos 
-    WHERE estado IS NOT NULL AND estado != '' 
+CREATE TABLE normalizado.estado AS
+    SELECT ROW_NUMBER() OVER(ORDER BY estado) AS id, estado AS nome
+    FROM main.focos
+    WHERE estado IS NOT NULL AND estado != ''
     GROUP BY estado;
-CREATE TABLE normalizado.focos_bruto AS 
-    SELECT 
-        id_bdq AS id, 
-        lat, 
-        lon, 
-        data_pas AS data, 
-        ne.id AS estadoId, 
-        nm.id AS municipioId, 
-        nb.id AS biomaId 
-    FROM focos f
-    JOIN normalizado.estado ne ON ne.nome = f.estado
-    JOIN normalizado.municipio nm ON nm.nome = f.municipio
-    JOIN normalizado.bioma nb ON nb.nome = f.bioma;
+
+-- create a raw focos_bruto storing the original data_pas (timestamp) and foreign keys
+CREATE TABLE normalizado.focos_bruto AS
+    SELECT
+        id_bdq AS id,
+        lat,
+        lon,
+        data_pas AS data_pas,
+        ne.id AS estadoId,
+        nm.id AS municipioId,
+        nb.id AS biomaId
+    FROM main.focos f
+    LEFT JOIN normalizado.estado ne ON ne.nome = f.estado
+    LEFT JOIN normalizado.municipio nm ON nm.nome = f.municipio
+    LEFT JOIN normalizado.bioma nb ON nb.nome = f.bioma;
+
+-- final focos table with formatted date/time and unix timestamp
 CREATE TABLE normalizado.focos (
     id INTEGER,
     lat REAL,
     lon REAL,
-    ano INTEGER,
-    mes INTEGER,
-    dia INTEGER,
-    hora INTEGER,
-    minuto INTEGER,
+    data TEXT,
+    hora TEXT,
+    timestamp INTEGER,
     estadoId INTEGER,
     municipioId INTEGER,
     biomaId INTEGER
@@ -59,11 +69,9 @@ INSERT INTO normalizado.focos (
     id,
     lat,
     lon,
-    ano,
-    mes,
-    dia,
+    data,
     hora,
-    minuto,
+    timestamp,
     estadoId,
     municipioId,
     biomaId
@@ -72,16 +80,16 @@ SELECT
     ABS(RANDOM()),
     CAST(lat AS REAL),
     CAST(lon AS REAL),
-    CAST(strftime('%Y', data) AS INTEGER),
-    CAST(strftime('%m', data) AS INTEGER),
-    CAST(strftime('%d', data) AS INTEGER),
-    CAST(strftime('%H', data) AS INTEGER),
-    CAST(strftime('%M', data) AS INTEGER),
+    -- format date as DD/MM/YYYY
+    COALESCE(strftime('%d/%m/%Y', data_pas), data_pas),
+    -- extract hour:minute from data_pas
+    COALESCE(strftime('%H:%M', data_pas), ''),
+    CAST(strftime('%s', data_pas) AS INTEGER),
     estadoId,
     municipioId,
     biomaId
 FROM normalizado.focos_bruto;
-DROP TABLE normalizado.focos_bruto;
+DROP TABLE IF EXISTS normalizado.focos_bruto;
 EOF
 
 DB_PATH="sql/normalizado.db"
@@ -102,14 +110,20 @@ echo "Exportação do arquivo completo concluída."
 echo "Iniciando exportação por ano para o diretório: $OUTPUT_DIR_ANO/"
 for year in {2003..2024}; do
     echo "Processando ano: $year"
-    sqlite3 "$DB_PATH" ".mode csv" ".headers on" ".output $OUTPUT_DIR_ANO/focos_$year.csv" "SELECT * FROM focos WHERE ano = $year;"
+    sqlite3 "$DB_PATH" ".mode csv" ".headers on" ".output $OUTPUT_DIR_ANO/focos_$year.csv" "SELECT * FROM focos WHERE substr(data, 7, 4) = '$year';"
 done
 echo "Exportação por ano concluída."
 
 echo "Iniciando exportação por estado (todos os anos) para o diretório: $OUTPUT_DIR_ESTADO/"
 sqlite3 -separator '|' "$DB_PATH" "SELECT id, nome FROM estado;" | while IFS='|' read -r estadoId estadoNome; do
     if [ -n "$estadoId" ] && [ -n "$estadoNome" ]; then
+        mkdir -p "$OUTPUT_DIR_ESTADO"
         FILENAME=$(echo "$estadoNome" | tr ' ' '_').csv
+        # safety: skip if filename is empty or looks invalid
+        if [ -z "$FILENAME" ] || [ "$FILENAME" = ".csv" ]; then
+            echo "Aviso: nome de arquivo inválido para estado '$estadoNome' (id=$estadoId). Pulando."
+            continue
+        fi
         echo "Processando estado: $estadoNome -> $FILENAME"
         sqlite3 "$DB_PATH" ".mode csv" ".headers on" ".output $OUTPUT_DIR_ESTADO/$FILENAME" "SELECT * FROM focos WHERE estadoId = $estadoId;"
     fi
@@ -117,12 +131,19 @@ done
 echo "Exportação por estado (todos os anos) concluída."
 
 echo "Iniciando exportação por estado (2023-2024) para o diretório: $OUTPUT_DIR_ESTADO_2324/"
+mkdir -p "$OUTPUT_DIR_ESTADO_2324"
 sqlite3 -separator '|' "$DB_PATH" "SELECT id, nome FROM estado;" | while IFS='|' read -r estadoId estadoNome; do
     if [ -n "$estadoId" ] && [ -n "$estadoNome" ]; then
+        mkdir -p "$OUTPUT_DIR_ESTADO_2324"
         FILENAME=$(echo "$estadoNome" | tr ' ' '_').csv
+        # safety: skip if filename is empty or looks invalid
+        if [ -z "$FILENAME" ] || [ "$FILENAME" = ".csv" ]; then
+            echo "Aviso: nome de arquivo inválido para estado '$estadoNome' (id=$estadoId). Pulando."
+            continue
+        fi
         echo "Processando estado (2023-2024): $estadoNome -> $FILENAME"
-        
-        sqlite3 "$DB_PATH" ".mode csv" ".headers on" ".output $OUTPUT_DIR_ESTADO_2324/$FILENAME" "SELECT * FROM focos WHERE estadoId = $estadoId AND ano IN (2023, 2024);"
+        sqlite3 "$DB_PATH" ".mode csv" ".headers on" ".output $OUTPUT_DIR_ESTADO_2324/$FILENAME" \
+            "SELECT * FROM focos WHERE estadoId = $estadoId AND substr(data, 7, 4) IN ('2023', '2024');"
     fi
 done
 echo "Exportação por estado (2023-2024) concluída."
@@ -130,3 +151,4 @@ echo "Exportação por estado (2023-2024) concluída."
 echo "----------------------------------------------------"
 echo "Processo finalizado. Verifique os diretórios '$OUTPUT_DIR_ANO', '$OUTPUT_DIR_ESTADO', '$OUTPUT_DIR_ESTADO_2324' e o arquivo 'csv_tratado/completo.csv'."
 echo "----------------------------------------------------"
+ 
