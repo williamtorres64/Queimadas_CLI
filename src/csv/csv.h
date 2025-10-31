@@ -4,9 +4,9 @@
 #include <stdio.h>
 #include "../tipos.h"
 
-BiomaLista lerBiomaCSV(const char *filename);
-EstadoLista lerEstadoCSV(const char *filename);
-MunicipioLista lerMunicipioCSV(const char *filename);
-QueimadaLista lerQueimadaCSV(const char *filename);
+Bioma *lerBiomaCSV(const char *filename);
+Estado *lerEstadoCSV(const char *filename);
+Municipio *lerMunicipioCSV(const char *filename);
+Queimada *lerQueimadaCSV(const char *filename);
 
 #endif // CSV_H

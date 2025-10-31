@@ -1,0 +1,7 @@
+#ifndef UI_CONSTANTS_H
+#define UI_CONSTANTS_H
+
+#define WINDOW_WIDTH 82
+#define PAGE_SIZE 11
+
+#endif // UI_CONSTANTS_H

@@ -1,6 +1,8 @@
 #ifndef TIPOS_H
 #define TIPOS_H
 
+#include <stdbool.h>
+
 typedef struct _IdNome {
     unsigned long id;
     char *nome;
@@ -8,30 +10,17 @@ typedef struct _IdNome {
     struct _IdNome *next;
 } _IdNome;
 
-typedef struct {
-    _IdNome idNome;
-    _IdNome* prev;
-    _IdNome* next;
-} _IdNomeLista;
-
 typedef _IdNome Bioma;
 typedef _IdNome Estado;
 typedef _IdNome Municipio;
-
-typedef _IdNomeLista MunicipioLista;
-typedef _IdNomeLista BiomaLista;
-typedef _IdNomeLista EstadoLista;
-
 
 typedef struct _Queimada {
     unsigned long id;
     float lat;
     float lon;
-    int ano;
-    int mes;
-    int dia;
-    int hora;
-    int minuto;
+    char* data;
+    char* hora;
+    int timestamp;
     int estadoId;
     int municipioId;
     int biomaId;
@@ -39,10 +28,28 @@ typedef struct _Queimada {
     struct _Queimada *next;
 } Queimada;
 
-typedef struct {
-    Queimada queimada;
-    Queimada* next;
-    Queimada* prev;
-} QueimadaLista;
+typedef struct _Server {
+    Bioma *biomas;
+    Estado *estados;
+    Municipio *municipios;
+    Queimada *queimadas;
+
+    char **resultados;
+    int total_resultados;
+    int pagina_atual;
+    int total_paginas;
+ 
+    int scroll_pos;
+
+    bool deserialization_done;
+    bool sorting_done;
+    bool results_ready;
+
+    char sort_by;
+    char sort_algorithm;
+
+    double tempo;
+    int comparacoes;
+} Server;
 
 #endif // TIPOS_H

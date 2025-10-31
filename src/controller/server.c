@@ -1,0 +1,292 @@
+#include "../csv/csv.h"
+#include "../tipos.h"
+#include "sort.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <time.h>
+#include <string.h>
+
+// add: count Unicode codepoints in a UTF-8 C string (counts leading bytes)
+static size_t utf8_charlen(const char *s)
+{
+    if (!s)
+        return 0;
+    size_t len = 0;
+    const unsigned char *p = (const unsigned char *)s;
+    while (*p)
+    {
+        // bytes with top two bits 10 are continuation bytes; skip them
+        if ((*p & 0xC0) != 0x80)
+            ++len;
+        ++p;
+    }
+    return len;
+}
+
+Server *criarServer()
+{
+    Server *server = malloc(sizeof(Server));
+    if (!server)
+    {
+        perror("Erro ao alocar memória para o Server");
+        return NULL;
+    }
+    server->biomas = NULL;
+    server->estados = NULL;
+    server->municipios = NULL;
+    server->queimadas = NULL;
+    server->resultados = NULL;
+    server->total_resultados = 0;
+    server->pagina_atual = 0;
+    server->total_paginas = 0;
+    server->deserialization_done = false;
+    server->sorting_done = false;
+    server->results_ready = false;
+    server->scroll_pos = 0;
+    server->sort_by = 0;
+    server->sort_algorithm = 0;
+    server->tempo = 0.0;
+    server->comparacoes = 0;
+
+    return server;
+}
+
+void reset_server(Server *server)
+{
+    
+
+
+    
+    server->deserialization_done = false;
+    server->sorting_done = false;
+    server->results_ready = false;
+
+
+
+}
+
+void read_data(Server *s, const char *biomasFile, const char *estadosFile, const char *municipiosFile, const char *queimadasFile)
+{
+    s->biomas = lerBiomaCSV(biomasFile);
+    s->estados = lerEstadoCSV(estadosFile);
+    s->municipios = lerMunicipioCSV(municipiosFile);
+    s->queimadas = lerQueimadaCSV(queimadasFile);
+
+    Queimada *q = s->queimadas;
+    int count = 0;
+    while (q != NULL)
+    {
+        count++;
+        q = q->next;
+    }
+
+    s->total_resultados = count;
+    s->deserialization_done = true;
+}
+
+void sort_queimadas(Server *s, char ordenar_por)
+{
+    if (s->sort_algorithm== 'b'){
+        bubble_sort(s, ordenar_por);
+    } else if (s->sort_algorithm == 'm'){
+        merge_sort(s, ordenar_por);
+    }
+    s->sorting_done = true;
+}
+
+char *id_lookup(_IdNome *head, int id)
+{
+    _IdNome *current = head;
+    while (current != NULL)
+    {
+        if (current->id == id)
+        {
+            return current->nome;
+        }
+        current = current->next;
+    }
+    return NULL;
+}
+
+void generate_results(Server *server)
+{
+    if (!server->sorting_done)
+        return;
+    // Implement result generation logic here
+
+    server->resultados = NULL;
+
+    Queimada *q = server->queimadas;
+    for (int i = 0; i < server->total_resultados && q != NULL; i++)
+    {
+        server->resultados = realloc(server->resultados, server->total_resultados * sizeof(char *));
+        if (!server->resultados)
+        {
+            perror("Erro ao alocar memória para resultados");
+            return;
+        }
+
+        // Lookup bioma name and ensure it occupies at least 14 characters (pad on the right if needed)
+        char *raw_bioma = id_lookup(server->biomas, q->biomaId);
+        if (!raw_bioma)
+            raw_bioma = "";
+        size_t bioma_chars = utf8_charlen(raw_bioma);
+
+        char bioma_padded[256];
+        const size_t BIOMA_MIN = 14;
+        // copy bytes as-is
+        strncpy(bioma_padded, raw_bioma, sizeof(bioma_padded) - 1);
+        bioma_padded[sizeof(bioma_padded) - 1] = '\0';
+
+        if (bioma_chars < BIOMA_MIN)
+        {
+            size_t pad = BIOMA_MIN - bioma_chars;   // number of spaces to add (one byte each)
+            size_t copy_len = strlen(bioma_padded); // bytes currently used
+            if (copy_len + pad >= sizeof(bioma_padded))
+                pad = (sizeof(bioma_padded) - 1) - copy_len;
+            memset(bioma_padded + copy_len, ' ', pad);
+            bioma_padded[copy_len + pad] = '\0';
+        }
+
+        // Format lat and lon to strings with 5 decimals, then pad them on the right to occupy at least 10 characters
+        char lat_str[64];
+        char lon_str[64];
+        snprintf(lat_str, sizeof(lat_str), "%.5f", q->lat);
+        snprintf(lon_str, sizeof(lon_str), "%.5f", q->lon);
+
+        size_t lat_len = strlen(lat_str);
+        if (lat_len < 9)
+        {
+            size_t pad = 9 - lat_len;
+            if (lat_len + pad >= sizeof(lat_str))
+                pad = (sizeof(lat_str) - 1) - lat_len;
+            memset(lat_str + lat_len, ' ', pad);
+            lat_str[lat_len + pad] = '\0';
+        }
+
+        size_t lon_len = strlen(lon_str);
+        if (lon_len < 10)
+        {
+            size_t pad = 10 - lon_len;
+            if (lon_len + pad >= sizeof(lon_str))
+                pad = (sizeof(lon_str) - 1) - lon_len;
+            memset(lon_str + lon_len, ' ', pad);
+            lon_str[lon_len + pad] = '\0';
+        }
+
+        // Lookup municipio name and ensure it occupies at least 21 characters (pad on the right if needed)
+        char *raw_municipio = id_lookup(server->municipios, q->municipioId);
+        if (!raw_municipio)
+            raw_municipio = "";
+        size_t muni_chars = utf8_charlen(raw_municipio);
+
+        char municipio_padded[256];
+        const size_t MUNICIPIO_MIN = 21;
+        // copy bytes as-is
+        strncpy(municipio_padded, raw_municipio, sizeof(municipio_padded) - 1);
+        municipio_padded[sizeof(municipio_padded) - 1] = '\0';
+
+        if (muni_chars < MUNICIPIO_MIN)
+        {
+            size_t pad = MUNICIPIO_MIN - muni_chars;
+            size_t copy_len = strlen(municipio_padded);
+            if (copy_len + pad >= sizeof(municipio_padded))
+                pad = (sizeof(municipio_padded) - 1) - copy_len;
+            memset(municipio_padded + copy_len, ' ', pad);
+            municipio_padded[copy_len + pad] = '\0';
+        }
+
+        size_t needed = snprintf(NULL, 0,
+                                 "%s │ %s │ %s │ %s │ %s │ %s │ ",
+                                 q->data, q->hora, bioma_padded, lat_str, lon_str, municipio_padded) +
+                        1;
+
+        server->resultados[i] = malloc(needed);
+        if (!server->resultados[i])
+        {
+            perror("Erro ao alocar memória para um resultado");
+            for (int j = 0; j < i; ++j)
+                free(server->resultados[j]);
+            free(server->resultados);
+            server->resultados = NULL;
+            return;
+        }
+        snprintf(server->resultados[i], needed,
+                 "%s │ %s │ %s │ %s │ %s │ %s │ ",
+                 q->data, q->hora, bioma_padded, lat_str, lon_str, municipio_padded);
+
+        q = q->next;
+    }
+    server->results_ready = true;
+}
+
+void server_fill_test_data(Server *server)
+{
+    // dummy data
+
+    int n = 150;
+    server->resultados = malloc(n * sizeof(char *));
+    if (!server->resultados)
+    {
+        perror("Erro ao alocar resultados");
+    }
+    for (int i = 0; i < n; ++i)
+    {
+
+        static int seeded = 0;
+        if (!seeded)
+        {
+            seeded = 1;
+            srand((unsigned)time(NULL) ^ (unsigned)clock());
+        }
+
+        /* Range for random dates: 2019-01-01 .. 2024-12-31 */
+        struct tm start_tm = {0};
+        start_tm.tm_year = 2019 - 1900;
+        start_tm.tm_mon = 0; /* January */
+        start_tm.tm_mday = 1;
+        time_t start_time = mktime(&start_tm);
+
+        struct tm end_tm = {0};
+        end_tm.tm_year = 2024 - 1900;
+        end_tm.tm_mon = 11; /* December */
+        end_tm.tm_mday = 31;
+        time_t end_time = mktime(&end_tm);
+
+        time_t span = end_time - start_time;
+        time_t rand_time = start_time + (time_t)((double)rand() / (double)RAND_MAX * (double)span);
+        struct tm *rt = localtime(&rand_time);
+
+        int day = rt->tm_mday;
+        int month = rt->tm_mon + 1;
+        int year = rt->tm_year + 1900;
+        int hour = rt->tm_hour;
+        int minute = rt->tm_min;
+
+        size_t needed = snprintf(NULL, 0,
+                                 "%02d/%02d/%04d │ %02d:%02d │ Mata Atlântica │ 7.70195   │ -9.12345   │ %05d                 │ ",
+                                 day, month, year, hour, minute, i + 1) +
+                        1;
+
+        server->resultados[i] = malloc(needed);
+        if (!server->resultados[i])
+        {
+            perror("Erro ao alocar resultado");
+            for (int j = 0; j < i; ++j)
+                free(server->resultados[j]);
+            free(server->resultados);
+            server->resultados = NULL;
+            break;
+        }
+
+        snprintf(server->resultados[i], needed,
+                 "%02d/%02d/%04d │ %02d:%02d │ Mata Atlântica │ 7.70195   │ -9.12345   │ %05d                 │ ",
+                 day, month, year, hour, minute, i + 1);
+    }
+
+    server->total_resultados = n;
+    server->pagina_atual = 1;
+    server->deserialization_done = true;
+    server->sorting_done = true;
+    server->results_ready = true;
+}

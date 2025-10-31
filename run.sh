@@ -1,4 +1,5 @@
-gcc -o queimadas_cli src/main.c -lmenu -lncurses
+clear
+make
 if [ $? -eq 0 ]; then
     echo "Compilação bem-sucedida. Executando o programa..."
     ./queimadas_cli
