@@ -148,7 +148,12 @@ sqlite3 -separator '|' "$DB_PATH" "SELECT id, nome FROM estado;" | while IFS='|'
 done
 echo "Exportação por estado (2023-2024) concluída."
 
+echo "Exportando municipios do estado do Acre..."
+sqlite3 "$DB_PATH" ".mode csv" ".headers on" ".output csv_tratado/municipio_acre.csv" \
+    "SELECT DISTINCT m.id, m.nome FROM municipio m JOIN focos f ON m.id = f.municipioId JOIN estado e ON e.id = f.estadoId WHERE e.nome = 'ACRE';"
+echo "Exportação de municipios do Acre concluída."
+
 echo "----------------------------------------------------"
 echo "Processo finalizado. Verifique os diretórios '$OUTPUT_DIR_ANO', '$OUTPUT_DIR_ESTADO', '$OUTPUT_DIR_ESTADO_2324' e o arquivo 'csv_tratado/completo.csv'."
 echo "----------------------------------------------------"
- 
+

@@ -7,3 +7,5 @@ dados/csv_tratado/completo.csv
 dados/sql/normalizado.db
 dados/sql/original.db
 queimadas_cli
+*.o
+*.exe
