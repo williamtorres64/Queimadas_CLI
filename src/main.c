@@ -13,29 +13,9 @@
 #include "ui/menu.h"
 #include "controller/server.h"
 
-void init_curses();
-void end_curses();
-
-int main()
-{
-    Server *server = criarServer();
-    read_data(server, "dados/csv_tratado/bioma.csv", "dados/csv_tratado/estado.csv", "dados/csv_tratado/municipio_acre.csv", "dados/csv_tratado/estado_2324/ACRE.csv");
-
-    init_curses();
-
-    open_menu(server);
-
-    free(server);
-
-    endwin();
-
-    return 0;
-}
-
 void init_curses()
 {
     setlocale(LC_ALL, "");
-
     initscr();
     raw();
     keypad(stdscr, TRUE);
@@ -49,3 +29,17 @@ void init_curses()
     attron(COLOR_PAIR(1));
     refresh();
 }
+
+int main()
+{
+    Server *server = criarServer();
+    read_data(server, "dados/csv_tratado/bioma.csv", "dados/csv_tratado/estado.csv", "dados/csv_tratado/municipio_acre.csv", "dados/csv_tratado/estado_2324/ACRE.csv");
+    init_curses();
+    open_menu(server);
+
+    free(server);
+    endwin();
+
+    return 0;
+}
+
