@@ -157,8 +157,7 @@ void open_tabela(Server *server)
     // Loop da aplicação
     bool exit_tabela = false;
     bool reset_sorting = false;
-    int ch;
-    ch = 0;
+    int ch = 0;
     while (ch != 'q' && ch != 27 && !exit_tabela)
     {
         // get pressed key

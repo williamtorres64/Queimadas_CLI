@@ -10,7 +10,6 @@
 void open_menu(Server *server)
 {
     WINDOW *win = newwin(0, 0, 0, 0);
-    const char *title = " Queimadas_TUI - Menu ";
 
     mvwprintw(win, 0, 0, "┌─────────────────────────────────────────────────────────────────────┐");
     mvwprintw(win, 1, 0, "│                                                                     │");
@@ -32,7 +31,7 @@ void open_menu(Server *server)
     wattroff(win, COLOR_PAIR(3));
 
     wattron(win, COLOR_PAIR(2));
-    mvwprintw(win, 1, 25, title);
+    mvwprintw(win, 1, 25, " Queimadas_TUI - Menu ");
     wattroff(win, COLOR_PAIR(2));
 
     wrefresh(win);

@@ -36,6 +36,8 @@
         "utility": "c",
         "valarray": "c",
         "variant": "c",
-        "server.h": "c"
+        "server.h": "c",
+        "constants.h": "c",
+        "menu.h": "c"
     }
 }
