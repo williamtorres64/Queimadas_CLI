@@ -1,6 +1,6 @@
 #define PDC_WIDE 1
 #if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__)
-#include <PDCurses/curses.h>
+#include "PDCurses/curses.h"
 #else
 #include <ncurses.h>
 #endif

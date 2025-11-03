@@ -9,4 +9,3 @@ dados/sql/original.db
 queimadas_cli
 *.o
 *.exe
-src/PDCurses
