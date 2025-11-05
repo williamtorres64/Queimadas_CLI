@@ -1,4 +1,8 @@
+#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__)
+#include "PDCurses/curses.h"
+#else
 #include <ncurses.h>
+#endif
 #include <string.h>
 #include <stdlib.h>
 #include <locale.h>
