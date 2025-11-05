@@ -93,8 +93,8 @@ void render_table(Server *server, WINDOW *win)
 {
     if (!server->results_ready)
         return;
-    int start_index = server->pagina_atual * PAGE_SIZE;
-    for (int i = 0; i < PAGE_SIZE; ++i)
+    int start_index = server->pagina_atual * PAGE_HEIGHT;
+    for (int i = 0; i < PAGE_HEIGHT; ++i)
     {
         int data_index = start_index + i;
         if (data_index < server->total_resultados)
@@ -109,7 +109,7 @@ void render_table(Server *server, WINDOW *win)
 
     mvwprintw(win, 9, 88, " ");
 
-    server->scroll_pos = 9 + (server->pagina_atual * PAGE_SIZE / (double)server->total_resultados) * (PAGE_SIZE + 1);
+    server->scroll_pos = 9 + (server->pagina_atual * PAGE_HEIGHT / (double)server->total_resultados) * (PAGE_HEIGHT + 1);
     mvwprintw(win, server->scroll_pos, 88, "▇");
     wrefresh(win);
 }
@@ -119,8 +119,8 @@ void handle_scrolling(int direction, WINDOW *win, Server *server)
     server->pagina_atual += direction;
     if (server->pagina_atual < 0)
         server->pagina_atual = 0;
-    if (server->pagina_atual >= server->total_resultados / PAGE_SIZE)
-        server->pagina_atual = server->total_resultados / PAGE_SIZE;
+    if (server->pagina_atual >= server->total_resultados / PAGE_HEIGHT)
+        server->pagina_atual = server->total_resultados / PAGE_HEIGHT;
     render_table(server, win);
 }
 
