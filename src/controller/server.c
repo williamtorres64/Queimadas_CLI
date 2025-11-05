@@ -52,7 +52,6 @@ Server *criarServer()
 
 void reset_server(Server *server)
 {
-    server->deserialization_done = false;
     server->sorting_done = false;
     server->results_ready = false;
     server->tempo = 0.0;

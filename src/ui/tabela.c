@@ -8,6 +8,7 @@
 #include <locale.h>
 #include <time.h>
 #include <math.h>
+#include <time.h>
 #include "constants.h"
 #include "menu.h"
 #include "../controller/server.h"
@@ -86,7 +87,7 @@ void handle_status(Server *server, WINDOW *win)
 {
     if (server->deserialization_done)
     {
-        mvwprintw(win, 6, 36, " Tempo: %.2f s", server->tempo);
+        mvwprintw(win, 6, 36, " Tempo: %.4f s", server->tempo);
         mvwprintw(win, 7, 36, " Comparações: %d", server->comparacoes);
 
         wrefresh(win);
@@ -164,9 +165,7 @@ void open_tabela(Server *server)
     int ch = 0;
     while (ch != 'q' && ch != 27 && !exit_tabela)
     {
-        // get pressed key
         ch = getch();
-        // handle keypress
         switch (ch)
         {
         case '1':
@@ -214,13 +213,17 @@ void open_tabela(Server *server)
         if (server->sort_algorithm && server->sort_by && reset_sorting)
         {
             reset_server(server);
+            clock_t start_time = clock();
             sort_queimadas(server);
+            clock_t end_time = clock();
+            server->tempo = (double)(end_time - start_time) / CLOCKS_PER_SEC;
             generate_results(server);
             handle_status(server, win);
             render_table(server, win);
             reset_sorting = false;
         }
     }
+    // q ou ESC pressionado
     delwin(win);
     server->pagina_atual = 0;
     open_menu(server);

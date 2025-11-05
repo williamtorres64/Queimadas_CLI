@@ -32,6 +32,7 @@ void bubble_sort(Server *server)
     if (!server->queimadas->next)
         return;
 
+    int comparisons = 0;
     bool swapped;
     do
     {
@@ -46,18 +47,22 @@ void bubble_sort(Server *server)
             case 'd':
                 if (qi->timestamp > qi->next->timestamp)
                     do_swap = true;
+                comparisons++;
                 break;
             case 'a':
                 if (qi->lat > qi->next->lat)
                     do_swap = true;
+                comparisons++;
                 break;
             case 'o':
                 if (qi->lon > qi->next->lon)
                     do_swap = true;
+                comparisons++;
                 break;
             case 'm':
                 if (qi->municipioId > qi->next->municipioId)
                     do_swap = true;
+                comparisons++;
                 break;
             default:
                 break;
@@ -72,26 +77,32 @@ void bubble_sort(Server *server)
             qi = qi->next;
         }
     } while (swapped);
+    server->comparacoes = comparisons;
 }
 
-static bool should_a_come_first(Queimada *a, Queimada *b, char ordenar_por)
+static bool should_a_come_first(Queimada *a, Queimada *b, char ordenar_por, Server *server)
 {
     switch (ordenar_por)
     {
     case 'd':
+        server->comparacoes++;
         return a->timestamp <= b->timestamp;
     case 'a':
+        server->comparacoes++;
         return a->lat <= b->lat;
     case 'o':
+        server->comparacoes++;
         return a->lon <= b->lon;
     case 'm':
+        server->comparacoes++;
         return a->municipioId <= b->municipioId;
     default:
+        server->comparacoes++;
         return a->timestamp <= b->timestamp;
     }
 }
 
-static Queimada *sortedMerge(Queimada *a, Queimada *b, char ordenar_por)
+static Queimada *sortedMerge(Queimada *a, Queimada *b, char ordenar_por, Server *server)
 {
     if (a == NULL)
     {
@@ -104,15 +115,15 @@ static Queimada *sortedMerge(Queimada *a, Queimada *b, char ordenar_por)
 
     Queimada *result = NULL;
 
-    if (should_a_come_first(a, b, ordenar_por))
+    if (should_a_come_first(a, b, ordenar_por, server))
     {
         result = a;
-        result->next = sortedMerge(a->next, b, ordenar_por);
+        result->next = sortedMerge(a->next, b, ordenar_por, server);
     }
     else
     {
         result = b;
-        result->next = sortedMerge(a, b->next, ordenar_por);
+        result->next = sortedMerge(a, b->next, ordenar_por, server);
     }
 
     return result;
@@ -140,7 +151,7 @@ static Queimada *getMiddle(Queimada *head)
     return slow;
 }
 
-static Queimada *mergeSortRecursive(Queimada *head, char ordenar_por)
+static Queimada *mergeSortRecursive(Queimada *head, char ordenar_por, Server *server)
 {
     if (head == NULL || head->next == NULL)
     {
@@ -153,10 +164,10 @@ static Queimada *mergeSortRecursive(Queimada *head, char ordenar_por)
     middle->next = NULL;
     Queimada *left_half = head;
 
-    Queimada *sorted_left = mergeSortRecursive(left_half, ordenar_por);
-    Queimada *sorted_right = mergeSortRecursive(right_half, ordenar_por);
+    Queimada *sorted_left = mergeSortRecursive(left_half, ordenar_por, server);
+    Queimada *sorted_right = mergeSortRecursive(right_half, ordenar_por, server);
 
-    return sortedMerge(sorted_left, sorted_right, ordenar_por);
+    return sortedMerge(sorted_left, sorted_right, ordenar_por, server);
 }
 
 void merge_sort(Server *server)
@@ -166,7 +177,9 @@ void merge_sort(Server *server)
         return;
     }
 
-    Queimada *new_head = mergeSortRecursive(server->queimadas, server->sort_by);
+    server->comparacoes = 0;
+
+    Queimada *new_head = mergeSortRecursive(server->queimadas, server->sort_by, server);
 
     server->queimadas = new_head;
 }
