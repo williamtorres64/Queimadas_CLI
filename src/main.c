@@ -1,8 +1,10 @@
 #define PDC_WIDE 1
 #if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__)
 #include "PDCurses/curses.h"
+#define LOCALE_STRING ".UTF-8"
 #else
 #include <ncurses.h>
+#define LOCALE_STRING ""
 #endif
 
 #include <string.h>
@@ -15,7 +17,7 @@
 
 void init_curses()
 {
-    setlocale(LC_ALL, "");
+    setlocale(LC_ALL, LOCALE_STRING);
     initscr();
     raw();
     keypad(stdscr, TRUE);
