@@ -214,7 +214,7 @@ void open_tabela(Server *server)
         if (server->sort_algorithm && server->sort_by && reset_sorting)
         {
             reset_server(server);
-            sort_queimadas(server, server->sort_by);
+            sort_queimadas(server);
             generate_results(server);
             handle_status(server, win);
             render_table(server, win);

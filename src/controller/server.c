@@ -55,6 +55,8 @@ void reset_server(Server *server)
     server->deserialization_done = false;
     server->sorting_done = false;
     server->results_ready = false;
+    server->tempo = 0.0;
+    server->comparacoes = 0;
 }
 
 void read_data(Server *s, const char *biomasFile, const char *estadosFile, const char *municipiosFile, const char *queimadasFile)
@@ -76,12 +78,12 @@ void read_data(Server *s, const char *biomasFile, const char *estadosFile, const
     s->deserialization_done = true;
 }
 
-void sort_queimadas(Server *s, char ordenar_por)
+void sort_queimadas(Server *s)
 {
     if (s->sort_algorithm== 'b'){
-        bubble_sort(s, ordenar_por);
+        bubble_sort(s);
     } else if (s->sort_algorithm == 'm'){
-        merge_sort(s, ordenar_por);
+        merge_sort(s);
     }
     s->sorting_done = true;
 }

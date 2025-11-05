@@ -3,7 +3,7 @@
 
 #include "server.h"
 
-void bubble_sort(Server *server, char ordenar_por);
-void merge_sort(Server *server, char ordenar_por);
+void bubble_sort(Server *server);
+void merge_sort(Server *server);
 
 #endif // SORT_H

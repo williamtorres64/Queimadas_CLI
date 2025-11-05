@@ -24,7 +24,7 @@ void swap_queimadas(Queimada *a, Queimada *b)
     a->biomaId = temp.biomaId;
 }
 
-void bubble_sort(Server *server, char ordenar_por)
+void bubble_sort(Server *server)
 {
     if (!server || !server->queimadas)
         return;
@@ -41,7 +41,7 @@ void bubble_sort(Server *server, char ordenar_por)
         while (qi != NULL && qi->next != NULL)
         {
             bool do_swap = false;
-            switch (ordenar_por)
+            switch (server->sort_by)
             {
             case 'd':
                 if (qi->timestamp > qi->next->timestamp)
@@ -159,14 +159,14 @@ static Queimada *mergeSortRecursive(Queimada *head, char ordenar_por)
     return sortedMerge(sorted_left, sorted_right, ordenar_por);
 }
 
-void merge_sort(Server *server, char ordenar_por)
+void merge_sort(Server *server)
 {
     if (!server || !server->queimadas || !server->queimadas->next)
     {
         return;
     }
 
-    Queimada *new_head = mergeSortRecursive(server->queimadas, ordenar_por);
+    Queimada *new_head = mergeSortRecursive(server->queimadas, server->sort_by);
 
     server->queimadas = new_head;
 }
