@@ -12,5 +12,6 @@ void server_fill_test_data(Server *server);
 void sort_queimadas(Server *s);
 void generate_results(Server *server);
 void reset_server(Server *server);
+void get_map_data(Server *server);
 
 #endif // SERVER_H

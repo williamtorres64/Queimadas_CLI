@@ -46,6 +46,20 @@ Server *criarServer()
     server->sort_algorithm = 0;
     server->tempo = 0.0;
     server->comparacoes = 0;
+    server->data_mapa = "00/00/0000";
+    server->velocidade_mapa = 0;
+    server->lat_high = -90.0;
+    server->lat_low = 90.0;
+    server->lon_high = -180.0;
+    server->lon_low = 180.0;
+    server->timestamp_high = 0;
+    server->timestamp_low = 2000000000;
+
+    for (int i = 0; i < LARGURA_MAPA * ALTURA_MAPA; i++)
+    {
+        server->queimadas_mapa_counter[i] = 0;
+        server->queimadas_mapa_normalized[i] = 0.0f;
+    }
 
     return server;
 }
@@ -56,6 +70,21 @@ void reset_server(Server *server)
     server->results_ready = false;
     server->tempo = 0.0;
     server->comparacoes = 0;
+
+    server->data_mapa = "00/00/0000";
+    server->lat_high = -90.0;
+    server->lat_low = 90.0;
+    server->lon_high = -180.0;
+    server->lon_low = 180.0;
+    server->timestamp_high = 0;
+    server->timestamp_low = 2000000000;
+    server->queimada_mapa = server->queimadas;
+
+    for (int i = 0; i < LARGURA_MAPA * ALTURA_MAPA; i++)
+    {
+        server->queimadas_mapa_counter[i] = 0;
+        server->queimadas_mapa_normalized[i] = 0.0f;
+    }
 }
 
 void read_data(Server *s, const char *biomasFile, const char *estadosFile, const char *municipiosFile, const char *queimadasFile)
@@ -79,9 +108,12 @@ void read_data(Server *s, const char *biomasFile, const char *estadosFile, const
 
 void sort_queimadas(Server *s)
 {
-    if (s->sort_algorithm== 'b'){
+    if (s->sort_algorithm == 'b')
+    {
         bubble_sort(s);
-    } else if (s->sort_algorithm == 'm'){
+    }
+    else if (s->sort_algorithm == 'm')
+    {
         merge_sort(s);
     }
     s->sorting_done = true;
@@ -207,4 +239,37 @@ void generate_results(Server *server)
         q = q->next;
     }
     server->results_ready = true;
+}
+
+void get_map_data(Server *server)
+{
+    Queimada *q = server->queimadas;
+    while (q != NULL)
+    {
+        if (q->lat > server->lat_high)
+        {
+            server->lat_high = q->lat;
+        }
+        if (q->lat < server->lat_low)
+        {
+            server->lat_low = q->lat;
+        }
+        if (q->lon > server->lon_high)
+        {
+            server->lon_high = q->lon;
+        }
+        if (q->lon < server->lon_low)
+        {
+            server->lon_low = q->lon;
+        }
+        if (q->timestamp > server->timestamp_high)
+        {
+            server->timestamp_high = q->timestamp;
+        }
+        if (q->timestamp < server->timestamp_low)
+        {
+            server->timestamp_low = q->timestamp;
+        }
+        q = q->next;
+    }
 }

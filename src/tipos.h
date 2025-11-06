@@ -2,6 +2,7 @@
 #define TIPOS_H
 
 #include <stdbool.h>
+#include "ui/constants.h"
 
 typedef struct _IdNome {
     unsigned long id;
@@ -50,6 +51,19 @@ typedef struct _Server {
 
     double tempo;
     int comparacoes;
+
+    float velocidade_mapa;
+    char *data_mapa;
+    float lat_high;
+    float lat_low;
+    float lon_high;
+    float lon_low;
+    int timestamp_high;
+    int timestamp_low;
+    double map_start_time;
+    Queimada *queimada_mapa;
+    int queimadas_mapa_counter[LARGURA_MAPA * ALTURA_MAPA];
+    float queimadas_mapa_normalized[LARGURA_MAPA * ALTURA_MAPA];
 } Server;
 
 #endif // TIPOS_H

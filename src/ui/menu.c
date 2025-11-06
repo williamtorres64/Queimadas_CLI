@@ -9,6 +9,7 @@
 #include <time.h>
 #include "constants.h"
 #include "tabela.h"
+#include "mapa.h"
 #include "../controller/server.h"
 
 void open_menu(Server *server)
@@ -56,7 +57,9 @@ void open_menu(Server *server)
             break;
         case 'm':
             // Open mapa
-            // open_mapa();
+            exit_menu = true;
+            delwin(win);
+            open_mapa(server);
             break;
         default:
             break;
