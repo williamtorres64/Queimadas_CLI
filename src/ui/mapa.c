@@ -148,30 +148,8 @@ static double normalize_value_int(int value, int min, int max)
 
 static double draw_mapa_colorido(Server *server, WINDOW *win)
 {
-    // Converter lat/lon da queimada atual para coordenadas x,y no mapa
-    int largura_contorno = LARGURA_MAPA - 11;
-    float normalized_lat = normalize_value(server->queimada_mapa->lat, server->lat_low, server->lat_high);
-    float normalized_lon = normalize_value(server->queimada_mapa->lon, server->lon_low, server->lon_high);
-    int x = (int)(normalized_lon * (largura_contorno - 1));
-    int y = (int)((1.0f - normalized_lat) * (ALTURA_MAPA - 1)); // Inverter eixo y
-
-    // Atualizar contador de queimadas no mapa
-    server->queimadas_mapa_counter[y * largura_contorno + x]++;
-    int highest_count = 0;
-    for (int i = 0; i < largura_contorno * ALTURA_MAPA; i++)
-    {
-        if (server->queimadas_mapa_counter[i] > highest_count)
-            highest_count = server->queimadas_mapa_counter[i];
-    }
-
-    // Recalcular contador normalizado
-    for (int i = 0; i < largura_contorno * ALTURA_MAPA; i++)
-    {
-        float normalized_count = normalize_value((float)server->queimadas_mapa_counter[i], 0.0f, (float)highest_count);
-        server->queimadas_mapa_normalized[i] = normalized_count;
-    }
-
     // Desenhar cada ponto colorido no mapa
+    int largura_contorno = LARGURA_MAPA - 11;
     for (int yy = 0; yy < ALTURA_MAPA; yy++)
     {
         for (int xx = 0; xx < largura_contorno; xx++)
@@ -197,7 +175,6 @@ static double draw_mapa_colorido(Server *server, WINDOW *win)
             wattroff(win, COLOR_PAIR(color_pair));
         }
     }
-
 }
 
 static void advance_map(Server *server, WINDOW *win)
@@ -225,8 +202,31 @@ static void advance_map(Server *server, WINDOW *win)
     handle_progress_bar(win, actual_progress);
 
     // Atualizar mapa enquanto a progressão não chegar ao fim
-    if (expected_progress <= 1.0 || actual_progress < 1.0)
+    if (expected_progress <= 1.0 && actual_progress < 1.0)
     {
+        // Converter lat/lon da queimada atual para coordenadas x,y no mapa
+        int largura_contorno = LARGURA_MAPA - 11;
+        float normalized_lat = normalize_value(server->queimada_mapa->lat, server->lat_low, server->lat_high);
+        float normalized_lon = normalize_value(server->queimada_mapa->lon, server->lon_low, server->lon_high);
+        int x = (int)(normalized_lon * (largura_contorno - 1));
+        int y = (int)((1.0f - normalized_lat) * (ALTURA_MAPA - 1)); // Inverter eixo y
+
+        // Atualizar contador de queimadas no mapa
+        server->queimadas_mapa_counter[y * largura_contorno + x]++;
+        int highest_count = 0;
+        for (int i = 0; i < largura_contorno * ALTURA_MAPA; i++)
+        {
+            if (server->queimadas_mapa_counter[i] > highest_count)
+                highest_count = server->queimadas_mapa_counter[i];
+        }
+
+        // Recalcular contador normalizado
+        for (int i = 0; i < largura_contorno * ALTURA_MAPA; i++)
+        {
+            float normalized_count = normalize_value((float)server->queimadas_mapa_counter[i], 0.0f, (float)highest_count);
+            server->queimadas_mapa_normalized[i] = normalized_count;
+        }
+
         draw_mapa_colorido(server, win);
     }
 
