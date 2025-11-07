@@ -30,6 +30,17 @@ void draw_tabela_header(WINDOW *win)
     wrefresh(win);
 }
 
+void limpar_tabela(WINDOW *win, Server *server)
+{
+    for (int i = 0; i < PAGE_HEIGHT; ++i)
+    {
+        mvwprintw(win, 10 + i, 2, "           │       │                │           │            │                       │ ");
+    }
+    mvwprintw(win, 6, 44, "            ");
+    mvwprintw(win, 7, 50, "            ");
+    wrefresh(win);
+}
+
 void handle_algoritimos(Server *server, WINDOW *win)
 {
     mvwprintw(win, 3, 0, "│ Algorítimo: (1) Bubble, (2) Merge                                             Menu (q) │");
@@ -210,9 +221,13 @@ void open_tabela(Server *server)
             break;
         }
 
-        // Caso um algorítimo e uma opção de ordenação tenham sido selecionados, refazer a ordenação
+        // Caso um algoritmo e uma opção de ordenação tenham sido selecionados, refazer a ordenação
         if (server->sort_algorithm && server->sort_by && reset_sorting)
         {
+            if (server->sort_algorithm == 'b'){
+                // Limpar a tela enquanto a aplicação congela por conta do algorítimo lento
+                limpar_tabela(win, server);
+            }
             reset_server(server);
             clock_t start_time = clock();
             sort_queimadas(server);
