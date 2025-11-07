@@ -70,130 +70,51 @@ static void strip_quotes(char *str)
     trim_inplace(str);
 }
 
-Bioma *lerBiomaCSV(const char *filename)
+// Função genérica para ler arquivos com linhas "id,nome" (usada para Bioma/Estado/Município)
+_IdNome *lerIdNomeCSV(const char *filename)
 {
-    Bioma *head = NULL;
-    Bioma *tail = NULL;
+    _IdNome *head = NULL;
+    _IdNome *tail = NULL;
     FILE *file = fopen(filename, "r");
     if (!file) {
-        perror("Erro ao abrir arquivo de biomas");
+        perror("Erro ao abrir arquivo");
         return NULL;
     }
 
     char line[256];
     // Pular o cabeçalho
-    fgets(line, sizeof(line), file);
-
-    while (fgets(line, sizeof(line), file)) {
-        Bioma *novoBioma = malloc(sizeof(Bioma));
-        if (!novoBioma) continue;
-        char nomeBuf[256] = {0};
-        if (sscanf(line, "%lu,%255[^\n]", &novoBioma->id, nomeBuf) != 2)
-        {
-            free(novoBioma);
-            continue; // Linha mal formatada
-        }
-        strip_quotes(nomeBuf);
-        novoBioma->nome = malloc(strlen(nomeBuf) + 1);
-        if (novoBioma->nome) strcpy(novoBioma->nome, nomeBuf);
-        novoBioma->next = NULL;
-        novoBioma->prev = tail;
-
-        if (!head)
-        {
-            head = novoBioma;
-        }
-        else
-        {
-            tail->next = novoBioma;
-        }
-        tail = novoBioma;
-    }
-
-    fclose(file);
-    return head;
-}
-
-Estado *lerEstadoCSV(const char *filename)
-{
-    Estado *head = NULL;
-    Estado *tail = NULL;
-    FILE *file = fopen(filename, "r");
-    if (!file) {
-        perror("Erro ao abrir arquivo de estados");
+    if (!fgets(line, sizeof(line), file))
+    {
+        fclose(file);
         return NULL;
     }
 
-    char line[256];
-    // Pular o cabeçalho
-    fgets(line, sizeof(line), file);
-
     while (fgets(line, sizeof(line), file)) {
-        Estado *novoEstado = malloc(sizeof(Estado));
-        if (!novoEstado) continue;
+        _IdNome *novo = malloc(sizeof(_IdNome));
+        if (!novo)
+            continue;
         char nomeBuf[256] = {0};
-        if (sscanf(line, "%lu,%255[^\n]", &novoEstado->id, nomeBuf) != 2) {
-            free(novoEstado);
+        if (sscanf(line, "%lu,%255[^\n]", &novo->id, nomeBuf) != 2)
+        {
+            free(novo);
             continue; // Linha mal formatada
         }
         strip_quotes(nomeBuf);
-        novoEstado->nome = malloc(strlen(nomeBuf) + 1);
-        if (novoEstado->nome) strcpy(novoEstado->nome, nomeBuf);
-        novoEstado->next = NULL;
-        novoEstado->prev = tail;
+        novo->nome = malloc(strlen(nomeBuf) + 1);
+        if (novo->nome)
+            strcpy(novo->nome, nomeBuf);
+        novo->next = NULL;
+        novo->prev = tail;
 
         if (!head)
         {
-            head = novoEstado;
+            head = novo;
         }
         else
         {
-            tail->next = novoEstado;
+            tail->next = novo;
         }
-        tail = novoEstado;
-    }
-
-    fclose(file);
-    return head;
-}
-
-Municipio *lerMunicipioCSV(const char *filename)
-{
-    Municipio *head = NULL;
-    Municipio *tail = NULL;
-    FILE *file = fopen(filename, "r");
-    if (!file) {
-        perror("Erro ao abrir arquivo de municípios");
-        return NULL;
-    }
-
-    char line[256];
-    // Pular o cabeçalho
-    fgets(line, sizeof(line), file);
-
-    while (fgets(line, sizeof(line), file)) {
-        Municipio *novoMunicipio = malloc(sizeof(Municipio));
-        if (!novoMunicipio) continue;
-        char nomeBuf[256] = {0};
-        if (sscanf(line, "%lu,%255[^\n]", &novoMunicipio->id, nomeBuf) != 2) {
-            free(novoMunicipio);
-            continue; // Linha mal formatada
-        }
-        strip_quotes(nomeBuf);
-        novoMunicipio->nome = malloc(strlen(nomeBuf) + 1);
-        if (novoMunicipio->nome) strcpy(novoMunicipio->nome, nomeBuf);
-        novoMunicipio->next = NULL;
-        novoMunicipio->prev = tail;
-
-        if (!head)
-        {
-            head = novoMunicipio;
-        }
-        else
-        {
-            tail->next = novoMunicipio;
-        }
-        tail = novoMunicipio;
+        tail = novo;
     }
 
     fclose(file);

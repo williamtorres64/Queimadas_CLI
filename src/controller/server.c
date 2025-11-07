@@ -103,9 +103,9 @@ void reset_server(Server *server)
  */
 void read_data(Server *s, const char *biomasFile, const char *estadosFile, const char *municipiosFile, const char *queimadasFile)
 {
-    s->biomas = lerBiomaCSV(biomasFile);
-    s->estados = lerEstadoCSV(estadosFile);
-    s->municipios = lerMunicipioCSV(municipiosFile);
+    s->biomas = lerIdNomeCSV(biomasFile);
+    s->estados = lerIdNomeCSV(estadosFile);
+    s->municipios = lerIdNomeCSV(municipiosFile);
     s->queimadas = lerQueimadaCSV(queimadasFile);
 
     // Contar elementos na lista de queimadas
