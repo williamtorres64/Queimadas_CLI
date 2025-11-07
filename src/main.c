@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <locale.h>
 #include <time.h>
+#include <stdio.h> // added for fprintf
 #include "ui/constants.h"
 #include "ui/menu.h"
 #include "controller/server.h"
@@ -34,11 +35,30 @@ void init_curses()
     refresh();
 }
 
-int main()
+int main(int argc, char *argv[])
 {
+    // Determinar os caminhos dos arquivos CSV (ou dos argumentos ou dos padrões)
+    const char *bioma_path = "csv/bioma.csv";
+    const char *estado_path = "csv/estado.csv";
+    const char *municipio_path = "csv/municipio_acre.csv";
+    const char *queimadas_path = "csv/queimadas.csv";
+
+    if (argc == 5)
+    {
+        bioma_path = argv[1];
+        estado_path = argv[2];
+        municipio_path = argv[3];
+        queimadas_path = argv[4];
+    }
+    else if (argc != 1)
+    {
+        fprintf(stderr, "Uso correto: %s <bioma.csv> <estado.csv> <municipio.csv> <queimadas.csv>\n", argv[0]);
+        return 1;
+    }
+
     // Inicializar o servidor e carregar os dados
     Server *server = criarServer();
-    read_data(server, "csv/bioma.csv", "csv/estado.csv", "csv/municipio_acre.csv", "csv/queimadas.csv");
+    read_data(server, bioma_path, estado_path, municipio_path, queimadas_path);
 
     // Iniciar a interface ncurses
     init_curses();
