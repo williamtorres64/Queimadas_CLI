@@ -6,6 +6,10 @@
 #include <time.h>
 #include <string.h>
 
+/*
+ * Conta corretamente o número de caracteres Unicode em uma string UTF-8.
+ * Considerando bytes de continuação (com os bits superiores 10) como parte do mesmo caractere.
+ */
 static size_t utf8_charlen(const char *s)
 {
     if (!s)
@@ -14,7 +18,8 @@ static size_t utf8_charlen(const char *s)
     const unsigned char *p = (const unsigned char *)s;
     while (*p)
     {
-        // bytes with top two bits 10 are continuation bytes; skip them
+        // Bytes de continuação UTF-8 têm os dois bits superiores iguais a 10 (0x80..0xBF).
+        // Somente bytes que não são continuação incrementam o contador de caracteres.
         if ((*p & 0xC0) != 0x80)
             ++len;
         ++p;
@@ -22,6 +27,10 @@ static size_t utf8_charlen(const char *s)
     return len;
 }
 
+/*
+ * Aloca e inicializa uma nova estrutura Server.
+ * Inicializa ponteiros, flags, contadores e limites geográficos/padrão do mapa.
+ */
 Server *criarServer()
 {
     Server *server = malloc(sizeof(Server));
@@ -88,6 +97,10 @@ void reset_server(Server *server)
     }
 }
 
+/*
+ * Carrega arquivos CSV para suas respectivas listas em Server.
+ * Define total_resultados com base na lista de queimadas lida.
+ */
 void read_data(Server *s, const char *biomasFile, const char *estadosFile, const char *municipiosFile, const char *queimadasFile)
 {
     s->biomas = lerBiomaCSV(biomasFile);
@@ -95,6 +108,7 @@ void read_data(Server *s, const char *biomasFile, const char *estadosFile, const
     s->municipios = lerMunicipioCSV(municipiosFile);
     s->queimadas = lerQueimadaCSV(queimadasFile);
 
+    // Contar elementos na lista de queimadas
     Queimada *q = s->queimadas;
     int count = 0;
     while (q != NULL)
@@ -107,6 +121,7 @@ void read_data(Server *s, const char *biomasFile, const char *estadosFile, const
     s->deserialization_done = true;
 }
 
+// Executa o algoritmo de ordenação selecionado em server->sort_algorithm.
 void sort_queimadas(Server *s)
 {
     if (s->sort_algorithm == 'b')
@@ -120,6 +135,7 @@ void sort_queimadas(Server *s)
     s->sorting_done = true;
 }
 
+// Busca o nome associado a um id em uma lista do tipo _IdNome (Bioma/Estado/Município).
 char *id_lookup(_IdNome *head, int id)
 {
     _IdNome *current = head;
@@ -134,6 +150,7 @@ char *id_lookup(_IdNome *head, int id)
     return NULL;
 }
 
+// Gera strings formatadas para exibição na tabela a partir da lista de queimadas.
 void generate_results(Server *server)
 {
     if (!server->sorting_done)
@@ -151,6 +168,7 @@ void generate_results(Server *server)
             return;
         }
 
+        // Obter nome do bioma e ajustar preenchimento visual respeitando caracteres UTF-8
         char *raw_bioma = id_lookup(server->biomas, q->biomaId);
         if (!raw_bioma)
             raw_bioma = "";
@@ -158,10 +176,11 @@ void generate_results(Server *server)
 
         char bioma_padded[256];
         const size_t BIOMA_MIN = 14;
-        // copy bytes as-is
+        // Copiar bytes originalmente (preservando UTF-8)
         strncpy(bioma_padded, raw_bioma, sizeof(bioma_padded) - 1);
         bioma_padded[sizeof(bioma_padded) - 1] = '\0';
 
+        // Se o número de caracteres for menor que o mínimo, preencher com espaços
         if (bioma_chars < BIOMA_MIN)
         {
             size_t pad = BIOMA_MIN - bioma_chars;
@@ -197,6 +216,7 @@ void generate_results(Server *server)
             lon_str[lon_len + pad] = '\0';
         }
 
+        // Obter e padronizar nome do município (tratamento UTF-8 similar ao bioma)
         char *raw_municipio = id_lookup(server->municipios, q->municipioId);
         if (!raw_municipio)
             raw_municipio = "";
@@ -218,6 +238,7 @@ void generate_results(Server *server)
             municipio_padded[copy_len + pad] = '\0';
         }
 
+        // Calcular tamanho necessário e alocar string do resultado
         size_t needed = snprintf(NULL, 0,
                                  "%s │ %s │ %s │ %s │ %s │ %s │ ",
                                  q->data, q->hora, bioma_padded, lat_str, lon_str, municipio_padded) +
@@ -242,6 +263,7 @@ void generate_results(Server *server)
     server->results_ready = true;
 }
 
+// Percorre a lista de queimadas para atualizar os limites geográficos (lat/lon) e timestamps
 void get_map_data(Server *server)
 {
     Queimada *q = server->queimadas;

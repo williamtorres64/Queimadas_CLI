@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include "../tipos.h"
 
+// Remove espaços em branco do início e fim da string
 static void trim_inplace(char *s)
 {
     if (!s || !*s)
@@ -21,6 +22,9 @@ static void trim_inplace(char *s)
     }
 }
 
+// Normaliza alguns bytes UTF-8 comuns em arquivos CSV:
+// - Remove BOM UTF-8 se presente (0xEF 0xBB 0xBF).
+// - Substitui NBSP (0xC2 0xA0) por espaço ' '.
 static void normalize_utf8_bytes(char *s)
 {
     if (!s || !*s)
@@ -49,6 +53,7 @@ static void normalize_utf8_bytes(char *s)
     *write = '\0';
 }
 
+// Remove aspas que encapsulam um campo CSV
 static void strip_quotes(char *str)
 {
     if (!str)
@@ -215,6 +220,13 @@ Queimada *lerQueimadaCSV(const char *filename)
             continue;
         char dataBuf[16] = {0};
         char horaBuf[8] = {0};
+
+        // %lu        -> lê um unsigned long
+        // ,          -> separador
+        // %f         -> lê um float
+        // %15[^,]    -> lê até 15 caracteres que NÃO sejam ',' (campo de data); termina antes da vírgula.
+        // %7[^,]     -> lê até 7 caracteres que NÃO sejam ',' (campo de hora); terminará antes da vírgula.
+        // %d         -> lê um int
         if (sscanf(line, "%lu,%f,%f,%15[^,],%7[^,],%d,%d,%d,%d",
                    &novaQueimada->id,
                    &novaQueimada->lat,

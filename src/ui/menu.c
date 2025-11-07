@@ -43,20 +43,20 @@ void open_menu(Server *server)
 
     bool exit_menu = false;
     int ch = 0;
-    // Loop until 'q' or ESC (ASCII 27) is pressed
+    // Loop até que 'q' ou ESC (ASCII 27) seja pressionado
     while (ch != 'q' && ch != 27 && !exit_menu)
     {
         ch = getch();
         switch (ch)
         {
         case 't':
-            // Open tabela
+            // Tabela
             exit_menu = true;
             delwin(win);
             open_tabela(server);
             break;
         case 'm':
-            // Open mapa
+            // Mapa
             exit_menu = true;
             delwin(win);
             open_mapa(server);

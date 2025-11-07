@@ -36,11 +36,15 @@ void init_curses()
 
 int main()
 {
+    // Inicializar o servidor e carregar os dados
     Server *server = criarServer();
     read_data(server, "dados/csv_tratado/bioma.csv", "dados/csv_tratado/estado.csv", "dados/csv_tratado/municipio_acre.csv", "dados/csv_tratado/estado_2324/ACRE.csv");
+
+    // Iniciar a interface ncurses
     init_curses();
     open_menu(server);
 
+    // Finalizar ncurses
     free(server);
     endwin();
 

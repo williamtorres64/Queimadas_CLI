@@ -2,26 +2,25 @@
 
 void swap_queimadas(Queimada *a, Queimada *b)
 {
-    Queimada temp = *b;
-    b->id = a->id;
-    b->lat = a->lat;
-    b->lon = a->lon;
-    b->data = a->data;
-    b->hora = a->hora;
-    b->timestamp = a->timestamp;
-    b->estadoId = a->estadoId;
-    b->municipioId = a->municipioId;
-    b->biomaId = a->biomaId;
+    if (!a || !b || a == b)
+        return;
 
-    a->id = temp.id;
-    a->lat = temp.lat;
-    a->lon = temp.lon;
-    a->data = temp.data;
-    a->hora = temp.hora;
-    a->timestamp = temp.timestamp;
-    a->estadoId = temp.estadoId;
-    a->municipioId = temp.municipioId;
-    a->biomaId = temp.biomaId;
+    // Salvar conexões das queimadas
+    Queimada *a_prev = a->prev;
+    Queimada *a_next = a->next;
+    Queimada *b_prev = b->prev;
+    Queimada *b_next = b->next;
+
+    // Trocar os conteúdos
+    Queimada tmp = *a;
+    *a = *b;
+    *b = tmp;
+
+    // Restaurar as conexões
+    a->prev = a_prev;
+    a->next = a_next;
+    b->prev = b_prev;
+    b->next = b_next;
 }
 
 void bubble_sort(Server *server)
@@ -80,6 +79,7 @@ void bubble_sort(Server *server)
     server->comparacoes = comparisons;
 }
 
+// Determina se 'a' deve vir antes de 'b' segundo o critério de ordenação.
 static bool should_a_come_first(Queimada *a, Queimada *b, char ordenar_por, Server *server)
 {
     switch (ordenar_por)
@@ -102,6 +102,7 @@ static bool should_a_come_first(Queimada *a, Queimada *b, char ordenar_por, Serv
     }
 }
 
+// Mescla duas listas ordenadas em uma única lista ordenada.
 static Queimada *sortedMerge(Queimada *a, Queimada *b, char ordenar_por, Server *server)
 {
     if (a == NULL)
@@ -129,6 +130,7 @@ static Queimada *sortedMerge(Queimada *a, Queimada *b, char ordenar_por, Server 
     return result;
 }
 
+// Retorna o nó do meio da lista (algorítmo fast/slow pointer)
 static Queimada *getMiddle(Queimada *head)
 {
     if (head == NULL)
@@ -151,6 +153,8 @@ static Queimada *getMiddle(Queimada *head)
     return slow;
 }
 
+// Função recursiva do merge sort para listas encadeadas.
+// Divide a lista, ordena as metades e mescla o resultado.
 static Queimada *mergeSortRecursive(Queimada *head, char ordenar_por, Server *server)
 {
     if (head == NULL || head->next == NULL)
@@ -170,6 +174,7 @@ static Queimada *mergeSortRecursive(Queimada *head, char ordenar_por, Server *se
     return sortedMerge(sorted_left, sorted_right, ordenar_por, server);
 }
 
+// Interface para ordenar as queimadas usando merge sort.
 void merge_sort(Server *server)
 {
     if (!server || !server->queimadas || !server->queimadas->next)

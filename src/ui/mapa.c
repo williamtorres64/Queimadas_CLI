@@ -36,19 +36,14 @@ static void limpar_mapa(WINDOW *win)
 
 static void draw_mapa_template(WINDOW *win)
 {
-    // Draw the mapa exactly like mapa_template.txt
     mvwprintw(win, 0, 0, "┌────────────────────────────────────────────────────────────────────────────────┐");
-    // left border
     mvwprintw(win, 1, 0, "│");
-    // left decorative pattern (colored)
     wattron(win, COLOR_PAIR(3));
     mvwprintw(win, 1, 1, "▃▁▁▃▂▇▇▆▇▅▁▇▂▂▆▅▇▇▂▅▁▅▇▂▅▁▇▇▂▂▆▆▁▅▇▆▇▇▁▅▁▇▂▇▂▅▁▂▇▂▅▁▇▂▅▃▆▁▆▅▅▁▆▁▅▇▆▇▇▁▅▁▇▂▇▂▅▁▁▆");
     wattroff(win, COLOR_PAIR(3));
-    // centered colored title overlay (red on black like menu)
     wattron(win, COLOR_PAIR(2));
     mvwprintw(win, 1, 31, " Queimadas_TUI - Mapa ");
     wattroff(win, COLOR_PAIR(2));
-    // trailing decorative pattern (colored) and right border
     wattron(win, COLOR_PAIR(3));
     mvwprintw(win, 1, 55, "");
     wattroff(win, COLOR_PAIR(3));
@@ -96,14 +91,14 @@ static void internal_sort(Server *server)
 
 static void handle_reset(WINDOW *win, Server *server)
 {
-    // Reset map data and sorting but preserve current velocidade_mapa
-    server->queimada_mapa = server->queimadas;
+    // Retornar ponteiro para o início da lista de queimadas
     internal_sort(server);
+    server->queimada_mapa = server->queimadas;
 
-    // Restart the map timer; do NOT override server->velocidade_mapa so the user's speed is preserved
+    // Redefinir tempo inicial do mapa
     server->map_start_time = ((double)clock()) / CLOCKS_PER_SEC * 10;
 
-    // update UI fields (velocidade display) and clear map drawing
+    // Atualizar interface
     mvwprintw(win, 3, 35, "%.1f", server->velocidade_mapa);
     limpar_mapa(win);
     wrefresh(win);
@@ -153,70 +148,72 @@ static double normalize_value_int(int value, int min, int max)
 
 static double draw_mapa_colorido(Server *server, WINDOW *win)
 {
+    // Converter lat/lon da queimada atual para coordenadas x,y no mapa
     int largura_contorno = LARGURA_MAPA - 11;
-        float normalized_lat = normalize_value(server->queimada_mapa->lat, server->lat_low, server->lat_high);
-        float normalized_lon = normalize_value(server->queimada_mapa->lon, server->lon_low, server->lon_high);
-        int x = (int)(normalized_lon * (largura_contorno - 1));
-        int y = (int)((1.0f - normalized_lat) * (ALTURA_MAPA - 1)); // invert y axis
+    float normalized_lat = normalize_value(server->queimada_mapa->lat, server->lat_low, server->lat_high);
+    float normalized_lon = normalize_value(server->queimada_mapa->lon, server->lon_low, server->lon_high);
+    int x = (int)(normalized_lon * (largura_contorno - 1));
+    int y = (int)((1.0f - normalized_lat) * (ALTURA_MAPA - 1)); // Inverter eixo y
 
-        server->queimadas_mapa_counter[y * largura_contorno + x]++;
-        int highest_count = 0;
-        for (int i = 0; i < largura_contorno * ALTURA_MAPA; i++)
+    // Atualizar contador de queimadas no mapa
+    server->queimadas_mapa_counter[y * largura_contorno + x]++;
+    int highest_count = 0;
+    for (int i = 0; i < largura_contorno * ALTURA_MAPA; i++)
+    {
+        if (server->queimadas_mapa_counter[i] > highest_count)
+            highest_count = server->queimadas_mapa_counter[i];
+    }
+
+    // Recalcular contador normalizado
+    for (int i = 0; i < largura_contorno * ALTURA_MAPA; i++)
+    {
+        float normalized_count = normalize_value((float)server->queimadas_mapa_counter[i], 0.0f, (float)highest_count);
+        server->queimadas_mapa_normalized[i] = normalized_count;
+    }
+
+    // Desenhar cada ponto colorido no mapa
+    for (int yy = 0; yy < ALTURA_MAPA; yy++)
+    {
+        for (int xx = 0; xx < largura_contorno; xx++)
         {
-            if (server->queimadas_mapa_counter[i] > highest_count)
-                highest_count = server->queimadas_mapa_counter[i];
-        }
-        // regenerate queimadas_mapa_normalized
-        for (int i = 0; i < largura_contorno * ALTURA_MAPA; i++)
-        {
-            float normalized_count = normalize_value((float)server->queimadas_mapa_counter[i], 0.0f, (float)highest_count);
-            server->queimadas_mapa_normalized[i] = normalized_count;
-        }
+            int idx = yy * largura_contorno + xx;
+            float normalized_count = server->queimadas_mapa_normalized[idx];
+            if (normalized_count == 0.0f)
+                continue;
 
-        // Draw for each x,y using the normalized map values
-        for (int yy = 0; yy < ALTURA_MAPA; yy++)
-        {
-            for (int xx = 0; xx < largura_contorno; xx++)
-            {
-                int idx = yy * largura_contorno + xx;
-                float normalized_count = server->queimadas_mapa_normalized[idx];
-                if (normalized_count == 0.0f)
-                    continue;
+            // Choose color based on normalized count
+            int color_pair = 0;
+            if (normalized_count <= 0.01f)
+                color_pair = 4; // Blue
+            else if (normalized_count <= 0.05f)
+                color_pair = 5; // Green
+            else if (normalized_count <= 0.10f)
+                color_pair = 6; // Yellow
+            else
+                color_pair = 2; // Red
 
-                // Choose color based on normalized count
-                int color_pair = 0;
-                if (normalized_count <= 0.01f)
-                    color_pair = 4; // Blue
-                else if (normalized_count <= 0.05f)
-                    color_pair = 5; // Green
-                else if (normalized_count <= 0.10f)
-                    color_pair = 6; // Yellow
-                else
-                    color_pair = 2; // Red
-
-                wattron(win, COLOR_PAIR(color_pair));
-                mvwprintw(win, 7 + yy, 5 + xx, "●");
-                wattroff(win, COLOR_PAIR(color_pair));
-            }
+            wattron(win, COLOR_PAIR(color_pair));
+            mvwprintw(win, 7 + yy, 5 + xx, "●");
+            wattroff(win, COLOR_PAIR(color_pair));
         }
+    }
 
 }
+
 static void advance_map(Server *server, WINDOW *win)
 {
+    // Não contar a passagem do tempo enquanto a velocidade do mapa for zero
     if (server->velocidade_mapa == 0.0f)
     {
         server->map_start_time = ((double)clock()) / CLOCKS_PER_SEC * 10;
         return;
     }
+
     double current_time = ((double)clock()) / CLOCKS_PER_SEC * 10;
     double elapsed = current_time - server->map_start_time;
-    if (elapsed > MAP_DURATION + 1)
-    {
-        return;
-    }
     double expected_progress = elapsed / MAP_DURATION * server->velocidade_mapa;
 
-    // Calculate actual progress based on queimadas timestamps
+    // Caso a queimada do mapa ainda não tenha sido definida
     if (server->queimada_mapa == NULL)
     {
         server->data_mapa = "00/00/0000";
@@ -227,13 +224,12 @@ static void advance_map(Server *server, WINDOW *win)
 
     handle_progress_bar(win, actual_progress);
 
-    // map normalization and counting
+    // Atualizar mapa enquanto a progressão não chegar ao fim
     if (expected_progress <= 1.0 || actual_progress < 1.0)
     {
         draw_mapa_colorido(server, win);
     }
 
-    // debugging
     if (server->debug_mapa)
     {
         mvwprintw(win, 15, 2, "Tempo: %f s             ", elapsed);
@@ -248,11 +244,9 @@ static void advance_map(Server *server, WINDOW *win)
         mvwprintw(win, 24, 2, "Queimada Lon: %f    ", server->queimada_mapa->lon);
     }
 
-    wrefresh(win);
-
+    // Avançar para a próxima queimada se necessário
     if (actual_progress < expected_progress)
     {
-        // Advance to next queimadas until we catch up
         if (server->queimada_mapa->next != NULL)
         {
             server->queimada_mapa = server->queimada_mapa->next;
@@ -267,44 +261,38 @@ static void advance_map(Server *server, WINDOW *win)
     wrefresh(win);
 }
 
-static void handle_mapa(WINDOW *win, Server *server)
-{
-    // Placeholder for future input handling if needed
-}
-
 void open_mapa(Server *server)
 {
     WINDOW *win = newwin(0, 0, 0, 0);
 
     draw_mapa_template(win);
-
-    // Internally sort queimadas by date using merge sort
     internal_sort(server);
     server->velocidade_mapa = 0.0f;
     server->map_start_time = ((double)clock()) / CLOCKS_PER_SEC * 10;
     bool exit_mapa = false;
     int ch = -1;
 
-    // make input non-blocking (timeout) so we don't stay stuck waiting for input
+    // Não parar esperando a entrada do usuário
     keypad(win, TRUE);
     wtimeout(win, 1); // 1 ms timeout
 
     while (!exit_mapa && ch != 'q' && ch != 27)
     {
-        ch = wgetch(win); // returns ERR if no input within timeout
+        ch = wgetch(win); // retorna ERR se não houver entrada dentro do tempo limite
         if (ch != ERR)
         {
             switch (ch)
             {
             case 'q':
-                // go back to menu
+                // Menu
                 exit_mapa = true;
                 break;
             case 'r':
+                // Reiniciar
                 handle_reset(win, server);
-                // could re-sort/reset here if desired
                 break;
             case 'd':
+                // Debug
                 server->debug_mapa = !server->debug_mapa;
                 if (server->debug_mapa)
                 {
@@ -317,13 +305,14 @@ void open_mapa(Server *server)
                     mvwprintw(win, 3, 56, "Debug (d)");
                     limpar_mapa(win);
                     draw_mapa_colorido(server, win);
-                    
                 }
                 break;
             case KEY_UP:
+                // Aumentar velocidade
                 handle_scroll_up(win, server);
                 break;
             case KEY_DOWN:
+                // Diminuir velocidade
                 handle_scroll_down(win, server);
                 break;
             default:
@@ -334,9 +323,7 @@ void open_mapa(Server *server)
         advance_map(server, win);
     }
 
-    // restore blocking behavior (optional)
-    wtimeout(win, -1);
-
+    // 'q' ou ESC pressionado
     delwin(win);
     open_menu(server);
 }

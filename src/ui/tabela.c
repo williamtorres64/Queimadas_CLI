@@ -19,13 +19,13 @@ void draw_tabela_header(WINDOW *win)
     mvwprintw(win, 1, 0, "│                                                                                        │");
     mvwprintw(win, 2, 0, "├────────────────────────────────────────────────────────────────────────────────────────┤");
 
-    wattron(win, COLOR_PAIR(3)); // Turn on yellow color pair for the title
+    wattron(win, COLOR_PAIR(3));
     mvwprintw(win, 1, 1, "▃▁▁▃▂▇▇▅▁▇▂▂▂▇▂▅▁▆▅▂▇▅▁▂▇▅▁▇▂▃▁▇▂▂▂▇▂▅▁▇▂▂▂▇▂▅▁▂▇▂▅▅▁▇▂▂▂▇▂▅▅▇▆▇▅▁▇▂▇▂▅▁▂▇▅▁▇▂▅▁▇▂▅▃▆▁▆▁");
-    wattroff(win, COLOR_PAIR(3)); // Turn off yellow color pair
+    wattroff(win, COLOR_PAIR(3));
 
-    wattron(win, COLOR_PAIR(2)); // Turn on blue color pair for the title
+    wattron(win, COLOR_PAIR(2));
     mvwprintw(win, 1, 32, " Queimadas_TUI - Tabela ");
-    wattroff(win, COLOR_PAIR(2)); // Turn off blue color pair
+    wattroff(win, COLOR_PAIR(2));
 
     wrefresh(win);
 }
@@ -210,6 +210,7 @@ void open_tabela(Server *server)
             break;
         }
 
+        // Caso um algorítimo e uma opção de ordenação tenham sido selecionados, refazer a ordenação
         if (server->sort_algorithm && server->sort_by && reset_sorting)
         {
             reset_server(server);
