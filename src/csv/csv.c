@@ -77,8 +77,10 @@ _IdNome *lerIdNomeCSV(const char *filename)
     _IdNome *tail = NULL;
     FILE *file = fopen(filename, "r");
     if (!file) {
-        perror("Erro ao abrir arquivo");
-        return NULL;
+        char err_msg[512];
+        snprintf(err_msg, sizeof(err_msg), "Erro ao abrir arquivo '%s'", filename);
+        perror(err_msg);
+        exit(EXIT_FAILURE);
     }
 
     char line[256];
