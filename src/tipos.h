@@ -64,6 +64,7 @@ typedef struct _Server {
     Queimada *queimada_mapa;
     int queimadas_mapa_counter[LARGURA_MAPA * ALTURA_MAPA];
     float queimadas_mapa_normalized[LARGURA_MAPA * ALTURA_MAPA];
+    bool debug_mapa;
 } Server;
 
 #endif // TIPOS_H

@@ -54,7 +54,7 @@ static void draw_mapa_template(WINDOW *win)
     wattroff(win, COLOR_PAIR(3));
     mvwprintw(win, 1, 81, "│");
     mvwprintw(win, 2, 0, "├──────────────────┬────────────────────┬────────────────────────────────────────┤");
-    mvwprintw(win, 3, 0, "│ Data: 00/00/0000 │ ↕ Velocidade: 0.0x │ Reiniciar (r)                 Menu (q) │");
+    mvwprintw(win, 3, 0, "│ Data: 00/00/0000 │ ↕ Velocidade: 0.0x │ Reiniciar (r) Debug (d)       Menu (q) │");
     mvwprintw(win, 4, 0, "├──────────────────┴────────────────────┴────────────────────────────────────────┤");
     mvwprintw(win, 5, 0, "│                                                                                │");
     mvwprintw(win, 6, 0, "├────────────────────────────────────────────────────────────────────────────────┤");
@@ -151,48 +151,9 @@ static double normalize_value_int(int value, int min, int max)
     return (double)(value - min) / (double)(max - min);
 }
 
-static void advance_map(Server *server, WINDOW *win)
+static double draw_mapa_colorido(Server *server, WINDOW *win)
 {
-    if (server->velocidade_mapa <= 0.01f)
-    {
-        server->map_start_time = ((double)clock()) / CLOCKS_PER_SEC * 10;
-        return;
-    }
-    double current_time = ((double)clock()) / CLOCKS_PER_SEC * 10;
-    double elapsed = current_time - server->map_start_time;
-    if (elapsed > MAP_DURATION + 1)
-    {
-        return;
-    }
-    double expected_progress = elapsed / MAP_DURATION * server->velocidade_mapa;
-
-    // Calculate actual progress based on queimadas timestamps
-    if (server->queimada_mapa == NULL)
-    {
-        server->data_mapa = "00/00/0000";
-        return;
-    }
-
-    double actual_progress = normalize_value_int(server->queimada_mapa->timestamp, server->timestamp_low, server->timestamp_high);
-
-    handle_progress_bar(win, actual_progress);
-
-    // debugging
-    // mvwprintw(win, 7, 2, "Elapsed: %.2f s          ", elapsed);
-    // mvwprintw(win, 8, 2, "Expected Progress: %.4f          ", expected_progress);
-    // mvwprintw(win, 9, 2, "Actual progress: %.4f          ", actual_progress);
-    // mvwprintw(win, 10, 2, "Current Speed: %.2f          ", server->velocidade_mapa);
-    // mvwprintw(win, 11, 2, "Map Start Time: %.2f          ", server->map_start_time);
-    // mvwprintw(win, 12, 2, "Map Duration: %.2f          ", MAP_DURATION);
-    // mvwprintw(win, 13, 2, "Queimada ID: %lu          ", server->queimada_mapa->id);
-    // mvwprintw(win, 14, 2, "Queimada Timestamp: %d          ", server->queimada_mapa->timestamp);
-    // mvwprintw(win, 15, 2, "Queimada Lat: %.2f          ", server->queimada_mapa->lat);
-    // mvwprintw(win, 16, 2, "Queimada Lon: %.2f          ", server->queimada_mapa->lon);
-
-    // map normalization and counting
-    if (expected_progress <= 1.0 || actual_progress < 1.0)
-    {
-        int largura_contorno = LARGURA_MAPA - 11;
+    int largura_contorno = LARGURA_MAPA - 11;
         float normalized_lat = normalize_value(server->queimada_mapa->lat, server->lat_low, server->lat_high);
         float normalized_lon = normalize_value(server->queimada_mapa->lon, server->lon_low, server->lon_high);
         int x = (int)(normalized_lon * (largura_contorno - 1));
@@ -238,7 +199,55 @@ static void advance_map(Server *server, WINDOW *win)
                 wattroff(win, COLOR_PAIR(color_pair));
             }
         }
+
+}
+static void advance_map(Server *server, WINDOW *win)
+{
+    if (server->velocidade_mapa == 0.0f)
+    {
+        server->map_start_time = ((double)clock()) / CLOCKS_PER_SEC * 10;
+        return;
     }
+    double current_time = ((double)clock()) / CLOCKS_PER_SEC * 10;
+    double elapsed = current_time - server->map_start_time;
+    if (elapsed > MAP_DURATION + 1)
+    {
+        return;
+    }
+    double expected_progress = elapsed / MAP_DURATION * server->velocidade_mapa;
+
+    // Calculate actual progress based on queimadas timestamps
+    if (server->queimada_mapa == NULL)
+    {
+        server->data_mapa = "00/00/0000";
+        return;
+    }
+
+    double actual_progress = normalize_value_int(server->queimada_mapa->timestamp, server->timestamp_low, server->timestamp_high);
+
+    handle_progress_bar(win, actual_progress);
+
+    // map normalization and counting
+    if (expected_progress <= 1.0 || actual_progress < 1.0)
+    {
+        draw_mapa_colorido(server, win);
+    }
+
+    // debugging
+    if (server->debug_mapa)
+    {
+        mvwprintw(win, 15, 2, "Tempo: %f s             ", elapsed);
+        mvwprintw(win, 16, 2, "Progresso Esperado: %f          ", expected_progress);
+        mvwprintw(win, 17, 2, "Progresso Atual: %f    ", actual_progress);
+        mvwprintw(win, 18, 2, "Velocidade Atual: %.1f            ", server->velocidade_mapa);
+        mvwprintw(win, 19, 2, "Tempo de Início do Mapa: %f   ", server->map_start_time);
+        mvwprintw(win, 20, 2, "Duração do Mapa: %.1f          ", MAP_DURATION);
+        mvwprintw(win, 21, 2, "ID da Queimada: %lu     ", server->queimada_mapa->id);
+        mvwprintw(win, 22, 2, "Timestamp da Queimada: %d    ", server->queimada_mapa->timestamp);
+        mvwprintw(win, 23, 2, "Queimada Lat: %f          ", server->queimada_mapa->lat);
+        mvwprintw(win, 24, 2, "Queimada Lon: %f    ", server->queimada_mapa->lon);
+    }
+
     wrefresh(win);
 
     if (actual_progress < expected_progress)
@@ -294,6 +303,22 @@ void open_mapa(Server *server)
             case 'r':
                 handle_reset(win, server);
                 // could re-sort/reset here if desired
+                break;
+            case 'd':
+                server->debug_mapa = !server->debug_mapa;
+                if (server->debug_mapa)
+                {
+                    wattron(win, COLOR_PAIR(4));
+                    mvwprintw(win, 3, 56, "Debug (d)");
+                    wattroff(win, COLOR_PAIR(4));
+                }
+                else
+                {
+                    mvwprintw(win, 3, 56, "Debug (d)");
+                    limpar_mapa(win);
+                    draw_mapa_colorido(server, win);
+                    
+                }
                 break;
             case KEY_UP:
                 handle_scroll_up(win, server);

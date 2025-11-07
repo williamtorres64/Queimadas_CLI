@@ -54,6 +54,7 @@ Server *criarServer()
     server->lon_low = 180.0;
     server->timestamp_high = 0;
     server->timestamp_low = 2000000000;
+    server->debug_mapa = false;
 
     for (int i = 0; i < LARGURA_MAPA * ALTURA_MAPA; i++)
     {
