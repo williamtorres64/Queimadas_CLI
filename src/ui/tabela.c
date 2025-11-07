@@ -144,6 +144,7 @@ void open_tabela(Server *server)
 {
     // Construir interface
     WINDOW *win = newwin(0, 0, 0, 0);
+    reset_server(server);
     draw_tabela_header(win);
     handle_algoritimos(server, win);
     mvwprintw(win, 4, 0, "├──────────────────────────────────┬─────────────────────────────────────────────────────┤");
